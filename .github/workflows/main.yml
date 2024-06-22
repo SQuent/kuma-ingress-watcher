@@ -1,0 +1,48 @@
+name: Main Branch Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  lint_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+  
+  #      - name: Run linter
+  #        run: poetry run flake8
+  
+      - name: Run tests
+        run: |
+          poetry run pytest
+
+  semantic_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          extra_plugins: |
+            @semantic-release/changelog@6.0.0
+            @semantic-release/git
+            @semantic-release/changelog
+            @codedependant/semantic-release-docker
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_REGISTRY_USER : ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_REGISTRY_PASSWORD : ${{ secrets.DOCKER_PASSWORD }}
