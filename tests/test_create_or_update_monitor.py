@@ -10,8 +10,7 @@ class TestCreateOrUpdateMonitor(unittest.TestCase):
         
         create_or_update_monitor('test', 'http://example.com', 60, 'http', None, 'GET')
 
-        mock_logger.info.assert_called_with('Updating monitor for test with URL: http://example.com')
-        mock_kuma.edit_monitor.assert_called_once_with(1, url='http://example.com', interval=60, type='http', headers=None, method='GET')
+        mock_logger.info.assert_called_with('Monitor already exists for test with same URL. Skipping creation.')
 
     @patch('kuma_ingress_watcher.controller.kuma')
     @patch('kuma_ingress_watcher.controller.logger')
@@ -20,8 +19,8 @@ class TestCreateOrUpdateMonitor(unittest.TestCase):
         
         create_or_update_monitor('test', 'http://newurl.com', 60, 'http', None, 'GET')
 
-        mock_logger.info.assert_called_with('Updating monitor for test with new URL: http://newurl.com')
-        mock_kuma.edit_monitor.assert_called_once_with(1, url='http://newurl.com', interval=60, type='http', headers=None, method='GET')
+        mock_logger.info.assert_called_with('Updating monitor for test with URL: http://newurl.com')
+        mock_kuma.edit_monitor.assert_called_once_with(1, url='http://newurl.com', type='http', headers=None, method='GET', interval=60)
 
     @patch('kuma_ingress_watcher.controller.kuma')
     @patch('kuma_ingress_watcher.controller.logger')
