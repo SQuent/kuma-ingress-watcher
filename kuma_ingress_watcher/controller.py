@@ -154,19 +154,6 @@ def get_ingressroutes(api_inst):
         logger.error(f"Failed to get ingressroutes: {e}")
         return {'items': []}
 
-
-def crd_exists(group, version, plural):
-    try:
-        api_instance = client.ApiextensionsV1Api()
-        api_instance.read_custom_resource_definition(f'{plural}.{group}')
-        return True
-    except ApiException as e:
-        if e.status == 404:
-            return False
-        logger.error(f"Error checking for CRD existence: {e}")
-        return False
-
-
 def watch_ingressroutes(interval=10):
     previous_ingressroutes = {}
 
@@ -199,9 +186,6 @@ def watch_ingressroutes(interval=10):
 def main():
     check_config()
     init_kuma_api()
-    while not crd_exists("traefik.containo.us", "v1alpha1", "ingressroutes"):
-        logger.error("CRD IngressRoute does not exist. Retrying in 20 seconds.")
-        time.sleep(20)
     init_kubernetes_client()
     watch_ingressroutes()
 
