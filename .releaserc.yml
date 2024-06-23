@@ -12,3 +12,6 @@ plugins:
   - 
     - "@codedependant/semantic-release-docker"
     -  dockerImage: "squent/kuma-ingress-watcher"
+    - dockerTags:
+      - latest
+      - '{{version}}'
