@@ -1,3 +1,11 @@
+## [1.0.1](https://github.com/SQuent/kuma-ingress-watcher/compare/v1.0.0...v1.0.1) (2024-06-23)
+
+
+### Bug Fixes
+
+* **cicd:** test semantic release ([0cb8c86](https://github.com/SQuent/kuma-ingress-watcher/commit/0cb8c86e5c16389a610cd3448770acaff1637079))
+* **semanticrelease:** disable specific docker tag cause fail ci ([dc86920](https://github.com/SQuent/kuma-ingress-watcher/commit/dc86920f004ca906232e1deda98c37d4a9f05659))
+
 # 1.0.0 (2024-06-23)
 
 
