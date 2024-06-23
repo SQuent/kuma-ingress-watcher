@@ -42,12 +42,9 @@ def create_or_update_monitor(name, url, interval, probe_type, headers, method):
     try:
         monitors = kuma.get_monitors()
         for monitor in monitors:
-            if monitor['name'] == name and monitor['url'] == url:
-                logger.info(f"Monitor already exists for {name} with same URL. Skipping creation.")
-                return
-            elif monitor['name'] == name:
-                logger.info(f"Updating monitor for {name} with new URL: {url}")
-                kuma.edit_monitor(monitor['id'], url=url, type=probe_type, headers=headers, method=method)
+            if monitor['name'] == name:
+                logger.info(f"Updating monitor for {name} with URL: {url}")
+                kuma.edit_monitor(monitor['id'], url=url, interval=interval, type=probe_type, headers=headers, method=method)
                 return
         logger.info(f"Creating new monitor for {name} with URL: {url}")
         kuma.add_monitor(
@@ -154,6 +151,11 @@ def get_ingressroutes(api_inst):
         logger.error(f"Failed to get ingressroutes: {e}")
         return {'items': []}
 
+
+def ingressroute_changed(old, new):
+    return old != new
+
+
 def watch_ingressroutes(interval=10):
     previous_ingressroutes = {}
 
@@ -175,7 +177,7 @@ def watch_ingressroutes(interval=10):
 
         modified = current_names & previous_names
         for name in modified:
-            if current_items[name] != previous_ingressroutes[name]:
+            if ingressroute_changed(previous_ingressroutes[name], current_items[name]):
                 logger.info(f"IngressRoute {name} modified.")
                 process_ingressroutes(current_items[name])
 
