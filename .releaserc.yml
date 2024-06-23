@@ -5,10 +5,11 @@ plugins:
   - 
     - "@semantic-release/commit-analyzer"
     - preset: "angular"
+  - 
+    - "@codedependant/semantic-release-docker"
+    -  dockerImage: "squent/kuma-ingress-watcher"
   - "@semantic-release/release-notes-generator"
   - "@semantic-release/changelog"
   - "@semantic-release/git"
   - "@semantic-release/github"
-  - 
-    - "@codedependant/semantic-release-docker"
-    -  dockerImage: "squent/kuma-ingress-watcher"
+ 

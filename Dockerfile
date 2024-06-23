@@ -1,6 +1,5 @@
-FROM python:3.12-slim as base
-
-RUN apt-get update && apt-get install -y gcc libffi-dev g++
+# Utiliser l'image Python officielle comme base
+FROM python:3.12
 
 # Copier les fichiers de votre projet dans le conteneur
 WORKDIR /app
