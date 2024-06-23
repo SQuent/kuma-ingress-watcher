@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/SQuent/kuma-ingress-watcher/compare/v1.0.2...v1.0.3) (2024-06-23)
+
+
+### Bug Fixes
+
+* **controller:** disable check for crd ([1b92245](https://github.com/SQuent/kuma-ingress-watcher/commit/1b922451d4ce2f63619501d46a516714156bc331))
+
 ## [1.0.2](https://github.com/SQuent/kuma-ingress-watcher/compare/v1.0.1...v1.0.2) (2024-06-23)
 
 
