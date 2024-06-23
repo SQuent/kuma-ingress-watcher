@@ -1,28 +1,19 @@
 FROM python:3.12-slim as base
 
 RUN apt-get update && apt-get install -y gcc libffi-dev g++
+
+# Copier les fichiers de votre projet dans le conteneur
 WORKDIR /app
+COPY . /app
 
-FROM base as builder
+# Installer Poetry
+RUN curl -sSL https://install.python-poetry.org| python -
 
-ENV PIP_DEFAULT_TIMEOUT=100 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1 \
-    POETRY_VERSION=1.1.3
+# Activer l'utilisation de Poetry dans le shell
+ENV PATH="${PATH}:$HOME/.local/bin"
 
-RUN pip install "poetry"
-RUN python -m venv /venv
+# Installer les dépendances avec Poetry
+RUN ~/.local/share/pypoetry/venv/bin/poetry install --no-root --no-dev
 
-COPY pyproject.toml poetry.lock ./
-RUN . /venv/bin/activate && poetry install --no-dev --no-root
-
-COPY . .
-RUN . /venv/bin/activate && poetry build
-
-FROM base as final
-
-COPY --from=builder /venv /venv
-COPY --from=builder /app/dist .
-
-RUN . /venv/bin/activate && pip install *.whl
+# Exécuter le script Python
 CMD ["python", "/app/controller.py"]
