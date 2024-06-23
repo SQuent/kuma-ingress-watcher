@@ -1,18 +1,28 @@
-# Utiliser l'image Python officielle comme base
-FROM python:3.12
+FROM python:3.12-slim as base
 
-# Copier les fichiers de votre projet dans le conteneur
+RUN apt-get update && apt-get install -y gcc libffi-dev g++
 WORKDIR /app
-COPY . /app
 
-# Installer Poetry
-RUN curl -sSL https://install.python-poetry.org| python -
+FROM base as builder
 
-# Activer l'utilisation de Poetry dans le shell
-ENV PATH="${PATH}:$HOME/.local/bin"
+ENV PIP_DEFAULT_TIMEOUT=100 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    POETRY_VERSION=1.1.3
 
-# Installer les dépendances avec Poetry
-RUN ~/.local/share/pypoetry/venv/bin/poetry install --no-root --no-dev
+RUN pip install "poetry"
+RUN python -m venv /venv
 
-# Exécuter le script Python
+COPY pyproject.toml poetry.lock ./
+RUN . /venv/bin/activate && poetry install --no-dev --no-root
+
+COPY . .
+RUN . /venv/bin/activate && poetry build
+
+FROM base as final
+
+COPY --from=builder /venv /venv
+COPY --from=builder /app/dist .
+
+RUN . /venv/bin/activate && pip install *.whl
 CMD ["python", "/app/controller.py"]
