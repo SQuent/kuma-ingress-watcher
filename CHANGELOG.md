@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/SQuent/kuma-ingress-watcher/compare/v1.0.3...v1.0.4) (2024-06-23)
+
+
+### Bug Fixes
+
+* **controller:** fix update of ingressroute. if modified AND annotations modified, modify in consequence the monitor ([e7d41ce](https://github.com/SQuent/kuma-ingress-watcher/commit/e7d41ce92acc1398cc3d2197026fa580e24cb7a7))
+
 ## [1.0.3](https://github.com/SQuent/kuma-ingress-watcher/compare/v1.0.2...v1.0.3) (2024-06-23)
 
 
