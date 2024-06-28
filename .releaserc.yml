@@ -9,11 +9,11 @@ plugins:
     - "@google/semantic-release-replace-plugin"
     - replacements:
       - files:
-        - "pypoetry.toml"
+        - "pyproject.toml"
         from: "version = \".*\""
         to: "version = \"${nextRelease.version}\""
         results:
-          - file: "pypoetry.toml"
+          - file: "pyproject.toml"
             hasChanged: true
             numMatches: 1
             numReplacements: 1
@@ -27,6 +27,6 @@ plugins:
   - 
     - "@semantic-release/git"
     - assets:
-      - "pypoetry.toml"
+      - "pyproject.toml"
   - "@semantic-release/github"
  
