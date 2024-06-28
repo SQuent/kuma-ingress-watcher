@@ -42,6 +42,7 @@ jobs:
             @semantic-release/git
             @semantic-release/changelog
             @codedependant/semantic-release-docker
+            @google/semantic-release-replace-plugin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_REGISTRY_USER : ${{ secrets.DOCKER_USERNAME }}

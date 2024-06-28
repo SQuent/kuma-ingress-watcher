@@ -6,10 +6,27 @@ plugins:
     - "@semantic-release/commit-analyzer"
     - preset: "angular"
   - 
+    - "@google/semantic-release-replace-plugin"
+    - replacements:
+      - files:
+        - "pypoetry.yml"
+        from: "version = \".*\""
+        to: "version = \"${nextRelease.version}\""
+        results:
+          - file: "pypoetry.yml"
+            hasChanged: true
+            numMatches: 1
+            numReplacements: 1
+        countMatches: true
+  - 
     - "@codedependant/semantic-release-docker"
     -  dockerImage: "squent/kuma-ingress-watcher"
   - "@semantic-release/release-notes-generator"
   - "@semantic-release/changelog"
-  - "@semantic-release/git"
+  
+  - 
+    - "@semantic-release/git"
+    - assets:
+      - "pypoetry.yml"
   - "@semantic-release/github"
  

@@ -18,8 +18,3 @@ pytest = "^8.2.0"
 
 [tool.pytest.ini_options]
 pythonpath = "."
-
-[tool.semantic_release]
-version_variable = [
-    "pyproject.toml:version"
-]
