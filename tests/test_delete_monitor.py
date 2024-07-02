@@ -1,6 +1,7 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from kuma_ingress_watcher.controller import delete_monitor
+
 
 class TestDeleteMonitor(unittest.TestCase):
     @patch('kuma_ingress_watcher.controller.kuma')
@@ -22,6 +23,7 @@ class TestDeleteMonitor(unittest.TestCase):
 
         mock_logger.warning.assert_called_with('No monitor found with name test')
         mock_kuma.delete_monitor.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()
