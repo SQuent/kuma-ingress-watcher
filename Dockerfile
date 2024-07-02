@@ -11,7 +11,7 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /app
 
 # Copier uniquement les fichiers de dépendance pour le cache
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml ./
 
 # Installer les dépendances sans les dépendances de développement
 RUN poetry install --no-root --only main
@@ -31,8 +31,6 @@ WORKDIR /app
 
 # Copier le reste des fichiers de l'application
 COPY . /app
-
-RUN poetry show
 
 # Exécuter le script Python
 CMD ["poetry", "run", "python", "/app/kuma_ingress_watcher/controller.py"]
