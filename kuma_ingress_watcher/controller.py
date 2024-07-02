@@ -41,9 +41,12 @@ def create_or_update_monitor(name, url, interval, probe_type, headers, method):
     try:
         monitors = kuma.get_monitors()
         for monitor in monitors:
-            if monitor['name'] == name:
+            if monitor['name'] == name and monitor['url'] == url:
+                logger.info(f"Monitor already exists for {name} with same URL. Skipping creation.")
+                return
+            elif monitor['name'] == name:
                 logger.info(f"Updating monitor for {name} with URL: {url}")
-                kuma.edit_monitor(monitor['id'], url=url, interval=interval, type=probe_type, headers=headers, method=method)
+                kuma.edit_monitor(monitor['id'], url=url, type=probe_type, headers=headers, method=method, interval=interval)
                 return
         logger.info(f"Creating new monitor for {name} with URL: {url}")
         kuma.add_monitor(

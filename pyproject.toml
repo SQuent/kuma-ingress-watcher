@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kuma-ingress-watcher"
-version = "0.1.0"
+version = "1.1.0"
 description = "Automatically manages IngressRoutes in Kubernetes and configures them in Uptime Kuma for availability monitoring."
 authors = ["Quentin Sallio <q.sallio@gmail.com>",]
 
