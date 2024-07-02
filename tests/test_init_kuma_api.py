@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
-import sys
 from kuma_ingress_watcher.controller import init_kuma_api
+
 
 class TestInitKumaApi(unittest.TestCase):
     @patch('kuma_ingress_watcher.controller.UptimeKumaApi')
@@ -10,7 +10,7 @@ class TestInitKumaApi(unittest.TestCase):
     def test_init_kuma_api_success(self, mock_exit, mock_logger, MockUptimeKumaApi):
         mock_kuma = MagicMock()
         MockUptimeKumaApi.return_value = mock_kuma
-        
+
         init_kuma_api()
 
         mock_kuma.login.assert_called_once()
@@ -26,6 +26,7 @@ class TestInitKumaApi(unittest.TestCase):
 
         mock_exit.assert_called_once_with(1)
         mock_logger.error.assert_called_once()
+
 
 if __name__ == '__main__':
     unittest.main()

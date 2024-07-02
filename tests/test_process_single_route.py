@@ -1,7 +1,8 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from kuma_ingress_watcher.controller import process_single_route
 import os
+
 
 class TestProcessSingleRoute(unittest.TestCase):
     @patch.dict(os.environ, {
@@ -14,6 +15,7 @@ class TestProcessSingleRoute(unittest.TestCase):
         route = {'match': 'Host(`example.com`)'}
         process_single_route('test-monitor', route, 60, 'http', None, None, 'GET')
         mock_create_or_update_monitor.assert_called_once_with('test-monitor', 'https://example.com', 60, 'http', None, 'GET')
+
 
 if __name__ == '__main__':
     unittest.main()

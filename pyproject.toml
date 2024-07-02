@@ -13,8 +13,20 @@ uptime-kuma-api = "^1.2.1"
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.group.test.dependencies]    
+[tool.poetry.group.test.dependencies]
+Flake8-pyproject = "^1.2.3"
 pytest = "^8.2.0"  
 
 [tool.pytest.ini_options]
 pythonpath = "."
+filterwarnings = [
+    "ignore:SyntaxWarning"
+]
+
+[tool.flake8]
+max-line-length = 150
+
+[tool.semantic_release]
+version_variable = [
+    "pyproject.toml:version"
+]

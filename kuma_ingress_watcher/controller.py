@@ -5,7 +5,6 @@ import logging
 import sys
 from uptime_kuma_api import UptimeKumaApi
 from kubernetes import client, config
-from kubernetes.client.rest import ApiException
 
 # Logging configuration
 logging.basicConfig(level=logging.DEBUG,
