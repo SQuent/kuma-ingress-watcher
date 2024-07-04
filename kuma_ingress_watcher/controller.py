@@ -110,6 +110,7 @@ def process_ingressroutes(item):
 
     if not enabled:
         logger.info(f"Monitoring for {name} is disabled via annotations.")
+        delete_monitor(monitor_name)
         return
 
     if len(routes) == 1:
