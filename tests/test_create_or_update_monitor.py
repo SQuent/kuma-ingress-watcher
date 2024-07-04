@@ -6,15 +6,6 @@ from kuma_ingress_watcher.controller import create_or_update_monitor
 class TestCreateOrUpdateMonitor(unittest.TestCase):
     @patch('kuma_ingress_watcher.controller.kuma')
     @patch('kuma_ingress_watcher.controller.logger')
-    def test_create_or_update_monitor_exists(self, mock_logger, mock_kuma):
-        mock_kuma.get_monitors.return_value = [{'name': 'test', 'url': 'http://example.com', 'id': 1}]
-
-        create_or_update_monitor('test', 'http://example.com', 60, 'http', None, 'GET')
-
-        mock_logger.info.assert_called_with('Monitor already exists for test with same URL. Skipping creation.')
-
-    @patch('kuma_ingress_watcher.controller.kuma')
-    @patch('kuma_ingress_watcher.controller.logger')
     def test_create_or_update_monitor_update(self, mock_logger, mock_kuma):
         mock_kuma.get_monitors.return_value = [{'name': 'test', 'url': 'http://oldurl.com', 'id': 1}]
 

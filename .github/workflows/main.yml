@@ -30,15 +30,21 @@ jobs:
           poetry run pytest
 
   semantic_release:
+    needs: lint_and_test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v4
         with:
           extra_plugins: |
-            @semantic-release/changelog@6.0.0
             @semantic-release/git
             @semantic-release/changelog
             @codedependant/semantic-release-docker
