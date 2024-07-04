@@ -21,12 +21,11 @@ plugins:
   - 
     - "@codedependant/semantic-release-docker"
     -  dockerImage: "squent/kuma-ingress-watcher"
-  - "@semantic-release/release-notes-generator"
-  - "@semantic-release/changelog"
-  
+  - "@semantic-release/release-notes-generator"  
   - 
     - "@semantic-release/git"
     - assets:
       - "pyproject.toml"
   - "@semantic-release/github"
+  - "@semantic-release/changelog"
  
