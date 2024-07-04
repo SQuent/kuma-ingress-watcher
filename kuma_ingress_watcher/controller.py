@@ -6,15 +6,27 @@ import sys
 from uptime_kuma_api import UptimeKumaApi
 from kubernetes import client, config
 
-# Logging configuration
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 # Configuration
 UPTIME_KUMA_URL = os.getenv('UPTIME_KUMA_URL')
 UPTIME_KUMA_USER = os.getenv('UPTIME_KUMA_USER')
 UPTIME_KUMA_PASSWORD = os.getenv('UPTIME_KUMA_PASSWORD')
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
+
+LOG_LEVELS = {
+    'DEBUG': logging.DEBUG,
+    'INFO': logging.INFO,
+    'WARNING': logging.WARNING,
+    'ERROR': logging.ERROR,
+    'CRITICAL': logging.CRITICAL,
+}
+
+# Logging configuration
+logging.basicConfig(
+    level=LOG_LEVELS.get(LOG_LEVEL, logging.DEBUG),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Global variables for Kubernetes and Uptime Kuma
 kuma = None
@@ -174,8 +186,10 @@ def watch_ingressroutes(interval=10):
 
         deleted = previous_names - current_names
         for name in deleted:
+            namespace = previous_ingressroutes[name]['metadata']['namespace']
+            monitor_name = f"{name}-{namespace}"
             logger.info(f"IngressRoute {name} deleted.")
-            delete_monitor(name)
+            delete_monitor(monitor_name)
 
         modified = current_names & previous_names
         for name in modified:
