@@ -142,15 +142,24 @@ def process_multiple_routes(monitor_name, routes, interval, probe_type, headers,
                 create_or_update_monitor(monitor_name_with_index, url, interval, probe_type, headers, method)
 
 
-def init_kubernetes_client():
+def load_kubernetes_config():
     try:
-        config.load_incluster_config()
-        global api_instance
-        api_instance = client.CustomObjectsApi()
-    except Exception as e:
-        logger.error(f"Failed to initialize Kubernetes client: {e}")
-        sys.exit(1)
+        config.load_incluster_config()        
+        logger.info("Loaded in-cluster configuration.")
+    except config.ConfigException:
+        logger.warning("In-cluster configuration not found, attempting to load kubeconfig from local file.")
+        try:
+            config.load_kube_config()
+            logger.info("Loaded kubeconfig from local file.")
+        except Exception as e:
+            logger.error(f"Failed to initialize Kubernetes client: {e}")
+            sys.exit(1)
 
+def init_kubernetes_client():
+    load_kubernetes_config()
+    global api_instance
+    api_instance = client.CustomObjectsApi()
+    logger.info("Kubernetes client initialized.")
 
 def get_ingressroutes(api_inst):
     try:
