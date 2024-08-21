@@ -186,15 +186,24 @@ def get_ingressroutes(api_inst):
 
 def get_ingresses(api_inst):
     try:
-        return api_inst.list_ingress_for_all_namespaces()
+        return api_inst.list_ingress_for_all_namespaces().to_dict()
     except Exception as e:
         logger.error(f"Failed to get ingresses: {e}")
         return {'items': []}
 
+def extract_ingresses_hosts(ingresses):
+    hosts = []
+    for ingress in ingresses.get('items', []):
+        if 'spec' in ingress and 'rules' in ingress['spec']:
+            for rule in ingress['spec']['rules']:
+                if 'host' in rule:
+                    hosts.append(rule['host'])
+    return hosts
+
 def watch_ingresses():
 
     current_ingresses = get_ingresses(networking_v1_api)
-    print(current_ingresses)
+    hosts = extract_ingresses_hosts(current_ingresses)
 
 # def ingressroute_changed(old, new):
 #     return old != new
