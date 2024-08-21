@@ -144,21 +144,33 @@ def process_multiple_routes(monitor_name, routes, interval, probe_type, headers,
 
 def load_kubernetes_config():
     try:
-        config.load_incluster_config()        
+        config.load_incluster_config()
         logger.info("Loaded in-cluster configuration.")
     except config.ConfigException:
-        logger.warning("In-cluster configuration not found, attempting to load kubeconfig from local file.")
+
+        logger.warning(f"In-cluster configuration not found. Attempting to use service account token.")
+
         try:
-            config.load_kube_config()
-            logger.info("Loaded kubeconfig from local file.")
-        except Exception as e:
-            logger.error(f"Failed to initialize Kubernetes client: {e}")
+            kubernetes_host = os.getenv('KUBERNETES_HOST')
+            token = os.getenv('KUBERNETES_TOKEN')
+
+            configuration = client.Configuration()
+            configuration.host = kubernetes_host
+            configuration.verify_ssl = False  # Set this to True if you want to verify SSL certificates
+            configuration.api_key = {"authorization": "Bearer " + token}
+
+            client.Configuration.set_default(configuration)
+            logger.info("Kubernetes client configured using service account token.")
+        except Exception as ex:
+            logger.error(f"Failed to configure Kubernetes client with service account token: {ex}")
             sys.exit(1)
 
 def init_kubernetes_client():
     load_kubernetes_config()
     global api_instance
-    api_instance = client.CustomObjectsApi()
+    global networking_v1_api
+    api_instance = client.CustomObjectsApi() # used for ingress routes
+    networking_v1_api = client.NetworkingV1Api()
     logger.info("Kubernetes client initialized.")
 
 def get_ingressroutes(api_inst):
@@ -172,47 +184,59 @@ def get_ingressroutes(api_inst):
         logger.error(f"Failed to get ingressroutes: {e}")
         return {'items': []}
 
+def get_ingresses(api_inst):
+    try:
+        return api_inst.list_ingress_for_all_namespaces()
+    except Exception as e:
+        logger.error(f"Failed to get ingresses: {e}")
+        return {'items': []}
 
-def ingressroute_changed(old, new):
-    return old != new
+def watch_ingresses():
+
+    current_ingresses = get_ingresses(networking_v1_api)
+    print(current_ingresses)
+
+# def ingressroute_changed(old, new):
+#     return old != new
 
 
-def watch_ingressroutes(interval=10):
-    previous_ingressroutes = {}
+# def watch_ingressroutes(interval=10):
+#     previous_ingressroutes = {}
 
-    while True:
-        current_ingressroutes = get_ingressroutes(api_instance)
-        current_items = {item['metadata']['name']: item for item in current_ingressroutes['items']}
-        current_names = set(current_items.keys())
-        previous_names = set(previous_ingressroutes.keys())
+#     while True:
+#         current_ingressroutes = get_ingressroutes(api_instance)
+#         current_items = {item['metadata']['name']: item for item in current_ingressroutes['items']}
+#         current_names = set(current_items.keys())
+#         previous_names = set(previous_ingressroutes.keys())
 
-        added = current_names - previous_names
-        for name in added:
-            logger.info(f"IngressRoute {name} added.")
-            process_ingressroutes(current_items[name])
+#         added = current_names - previous_names
+#         for name in added:
+#             logger.info(f"IngressRoute {name} added.")
+#             process_ingressroutes(current_items[name])
 
-        deleted = previous_names - current_names
-        for name in deleted:
-            namespace = previous_ingressroutes[name]['metadata']['namespace']
-            monitor_name = f"{name}-{namespace}"
-            logger.info(f"IngressRoute {name} deleted.")
-            delete_monitor(monitor_name)
+#         deleted = previous_names - current_names
+#         for name in deleted:
+#             namespace = previous_ingressroutes[name]['metadata']['namespace']
+#             monitor_name = f"{name}-{namespace}"
+#             logger.info(f"IngressRoute {name} deleted.")
+#             delete_monitor(monitor_name)
 
-        modified = current_names & previous_names
-        for name in modified:
-            if ingressroute_changed(previous_ingressroutes[name], current_items[name]):
-                logger.info(f"IngressRoute {name} modified.")
-                process_ingressroutes(current_items[name])
+#         modified = current_names & previous_names
+#         for name in modified:
+#             if ingressroute_changed(previous_ingressroutes[name], current_items[name]):
+#                 logger.info(f"IngressRoute {name} modified.")
+#                 process_ingressroutes(current_items[name])
 
-        previous_ingressroutes = current_items
-        time.sleep(interval)
+#         previous_ingressroutes = current_items
+#         time.sleep(interval)
 
 
 def main():
     check_config()
     init_kuma_api()
     init_kubernetes_client()
-    watch_ingressroutes()
+    watch_ingresses()
+    # watch_ingressroutes()
 
 
 if __name__ == "__main__":
