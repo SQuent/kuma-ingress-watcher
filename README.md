@@ -2,13 +2,13 @@
 
 ## Overview
 
-Kuma ingress watcher is a kubernetes controller designed to automatically monitor Traefik Ingress routes in a Kubernetes cluster and create corresponding monitors in Uptime Kuma. It provides seamless integration between Kubernetes ingress resources and Uptime Kuma monitoring, allowing for easy and efficient monitoring of web services deployed on Kubernetes.
+Kuma ingress watcher is a kubernetes controller designed to automatically monitor `Kubernetes Ingress` and `Traefik Ingressroutes` in a Kubernetes cluster and create corresponding monitors in `Uptime Kuma`. It provides seamless integration between Kubernetes ingress resources and Uptime Kuma monitoring, allowing for easy and efficient monitoring of web services deployed on Kubernetes.
 
 ## Features
 
-- Automatically creates, updates and deletes monitors in Uptime Kuma for Kubernetes Ingress routes.
+- Automatically creates, updates and deletes monitors in Uptime Kuma for `Kubernetes Ingress` and `Traefik Ingressroutes`.
 - Supports both single and multiple routes per Ingress resource.
-- Customizable monitors by annotate ingressroutes.
+- Customizable monitors by annotate Ingressroutes and Ingress.
 
 ## Installation
 
@@ -27,10 +27,13 @@ Before running the controller, make sure to configure the following environment 
 - `UPTIME_KUMA_URL`: The URL of your Uptime Kuma instance.
 - `UPTIME_KUMA_USER`: The username for authenticating with Uptime Kuma.
 - `UPTIME_KUMA_PASSWORD`: The password for authenticating with Uptime Kuma.
+- `WATCH_INGRESSROUTES`: Set to `True` to enable monitoring of Traefik IngressRoutes.
+- `WATCH_INGRESS`: Set to `True` to enable monitoring of Kubernetes Ingress resources.
+- `WATCH_INTERVAL`: Interval in seconds between each check for changes in Ingress or IngressRoutes (default is `10` seconds).
 
 ### Annotations for Uptime Kuma Autodiscovery
 
-The following annotations can be used to configure automatic discovery of monitors by Uptime Kuma from Kubernetes Ingress Resources:
+These annotations apply to both Kubernetes Ingress and Traefik Ingressroutes resources, allowing you to customize the behavior of Uptime Kuma monitors for each.:
 
 1. **`uptime-kuma.autodiscovery.probe.interval`**
    - Sets the probing interval in seconds for the monitor.
@@ -109,7 +112,16 @@ Currently, the addition of tags to monitors is not supported due to limitations 
 
 ### Custom Watcher for IngressRoutes
 
-The Kubernetes event watcher (`watch`) does not provide specific details on creation, modification, or deletion events for IngressRoutes. To overcome this limitation, this controller implements a custom watcher mechanism that continuously monitors IngressRoutes and triggers appropriate actions based on changes detected. This custom solution ensures accurate monitoring and synchronization with Uptime Kuma configurations.
+The Kubernetes event watcher (`watch`) does not provide specific details on creation, modification, or deletion events for IngressRoutes. To overcome this limitation, this controller implements a custom watcher mechanism that continuously monitors IngressRoutes and triggers appropriate actions based on changes detected. homemade watcher is used for Ingress objects too. This custom solution ensures accurate monitoring and synchronization with Uptime Kuma configurations.
+
+Here’s the passage with the new **Improvements** section included:
+
+---
+
+## Improvements
+
+- **IngressRoute Version Selection**: You can now choose which version of IngressRoutes to watch. This allows you to customize the controller's behavior based on the version of Traefik you're using.
+- **Tag Addition for Monitors**: Currently, the addition of tags to monitors is not supported due to limitations in the Uptime Kuma API. Future updates may include support for this feature, allowing you to tag monitors directly through the controller.
 
 
 ## Contributing
