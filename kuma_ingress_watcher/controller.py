@@ -7,10 +7,17 @@ from uptime_kuma_api import UptimeKumaApi
 from kubernetes import client, config
 
 
+def str_to_bool(value):
+    return str(value).lower() in ['true', '1', 't', 'y', 'yes']
+
+
 # Configuration
 UPTIME_KUMA_URL = os.getenv('UPTIME_KUMA_URL')
 UPTIME_KUMA_USER = os.getenv('UPTIME_KUMA_USER')
 UPTIME_KUMA_PASSWORD = os.getenv('UPTIME_KUMA_PASSWORD')
+WATCH_INTERVAL = int(os.getenv('WATCH_INTERVAL', '10') or 10)
+WATCH_INGRESSROUTES = str_to_bool(os.getenv('WATCH_INGRESSROUTES', 'True'))
+WATCH_INGRESS = str_to_bool(os.getenv('WATCH_INGRESS', 'False'))
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
 
 LOG_LEVELS = {
@@ -23,14 +30,15 @@ LOG_LEVELS = {
 
 # Logging configuration
 logging.basicConfig(
-    level=LOG_LEVELS.get(LOG_LEVEL, logging.DEBUG),
+    level=LOG_LEVELS.get(LOG_LEVEL, 'INFO'),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
 # Global variables for Kubernetes and Uptime Kuma
 kuma = None
-api_instance = None
+custom_api_instance = None
+networking_api_instance = None
 
 
 def check_config():
@@ -84,19 +92,45 @@ def delete_monitor(name):
         logger.error(f"Failed to delete monitor {name}: {e}")
 
 
-def extract_hosts(match):
+def extract_hosts_from_match(match):
     host_pattern = re.compile(r'Host\(`([^`]*)`\)')
     return host_pattern.findall(match)
 
 
-def process_ingressroutes(item):
+def extract_hosts_from_ingress_rule(rule):
+    hosts = []
+    if 'host' in rule:
+        hosts.append(rule['host'])
+    return hosts
+
+
+def extract_hosts(route_or_rule, type_obj):
+    if type_obj == 'IngressRoute':
+        match = route_or_rule.get('match')
+        return extract_hosts_from_match(match) if match else []
+    elif type_obj == 'Ingress':
+        return extract_hosts_from_ingress_rule(route_or_rule)
+    else:
+        return []
+
+
+def get_routes_or_rules(spec, type_obj):
+    if type_obj == 'IngressRoute':
+        return spec.get('routes', [])
+    elif type_obj == 'Ingress':
+        return spec.get('rules', [])
+    else:
+        return []
+
+
+def process_routing_object(item, type_obj):
     metadata = item['metadata']
     annotations = metadata.get('annotations', {})
 
     name = metadata['name']
     namespace = metadata['namespace']
     spec = item['spec']
-    routes = spec['routes']
+    routes_or_rules = get_routes_or_rules(spec, type_obj)
     interval = int(annotations.get('uptime-kuma.autodiscovery.probe.interval', 60))
     monitor_name = annotations.get('uptime-kuma.autodiscovery.probe.name', f"{name}-{namespace}")
     enabled = annotations.get('uptime-kuma.autodiscovery.probe.enabled', 'true').lower() == 'true'
@@ -110,51 +144,44 @@ def process_ingressroutes(item):
         delete_monitor(monitor_name)
         return
 
-    if len(routes) == 1:
-        process_single_route(monitor_name, routes[0], interval, probe_type, headers, port, method)
-    else:
-        process_multiple_routes(monitor_name, routes, interval, probe_type, headers, port, method)
+    process_routes(monitor_name, routes_or_rules, interval, probe_type, headers, port, method, type_obj)
 
 
-def process_single_route(monitor_name, route, interval, probe_type, headers, port, method):
-    match = route.get('match')
-    if match:
-        hosts = extract_hosts(match)
-        for host in hosts:
-            url = f"https://{host}"
-            if port:
-                url = f"{url}:{port}"
-            create_or_update_monitor(monitor_name, url, interval, probe_type, headers, method)
-
-
-def process_multiple_routes(monitor_name, routes, interval, probe_type, headers, port, method):
+def process_routes(monitor_name, routes_or_rules, interval, probe_type, headers, port, method, type_obj):
     index = 1
-    for route in routes:
-        match = route.get('match')
-        if match:
-            hosts = extract_hosts(match)
+    for route_or_rule in routes_or_rules:
+        hosts = extract_hosts(route_or_rule, type_obj)
+
+        if hosts:
             for host in hosts:
                 url = f"https://{host}"
                 if port:
                     url = f"{url}:{port}"
-                monitor_name_with_index = f"{monitor_name}-{index}"
-                index += 1
+
+                monitor_name_with_index = f"{monitor_name}-{index}" if len(routes_or_rules) > 1 else monitor_name
+
                 create_or_update_monitor(monitor_name_with_index, url, interval, probe_type, headers, method)
+            index += 1
 
 
 def init_kubernetes_client():
     try:
         config.load_incluster_config()
-        global api_instance
-        api_instance = client.CustomObjectsApi()
+        if WATCH_INGRESS:
+            global networking_api_instance
+            networking_api_instance = client.NetworkingV1Api()
+
+        if WATCH_INGRESSROUTES:
+            global custom_api_instance
+            custom_api_instance = client.CustomObjectsApi()
     except Exception as e:
         logger.error(f"Failed to initialize Kubernetes client: {e}")
         sys.exit(1)
 
 
-def get_ingressroutes(api_inst):
+def get_ingressroutes(custom_api_instance):
     try:
-        return api_inst.list_cluster_custom_object(
+        return custom_api_instance.list_cluster_custom_object(
             group="traefik.containo.us",
             version="v1alpha1",
             plural="ingressroutes"
@@ -164,46 +191,72 @@ def get_ingressroutes(api_inst):
         return {'items': []}
 
 
+def get_ingress(networking_api_instance):
+    try:
+        ingress_list = networking_api_instance.list_ingress_for_all_namespaces()
+        ingress_dict_list = [ingress.to_dict() for ingress in ingress_list.items]
+        return {'items': ingress_dict_list}
+    except Exception as e:
+        logger.error(f"Failed to get Ingress: {e}")
+        return {'items': []}
+
+
+def handle_changes(previous_items, current_items, resource_type):
+    current_names = set(current_items.keys())
+    previous_names = set(previous_items.keys())
+
+    added = current_names - previous_names
+    for name in added:
+        logger.info(f"{resource_type} {name} added.")
+        process_routing_object(current_items[name], resource_type)
+
+    deleted = previous_names - current_names
+    for name in deleted:
+        namespace = previous_items[name]['metadata']['namespace']
+        monitor_name = f"{name}-{namespace}"
+        logger.info(f"{resource_type} {name} deleted.")
+        delete_monitor(monitor_name)
+
+    modified = current_names & previous_names
+    for name in modified:
+        if ingressroute_changed(previous_items[name], current_items[name]):
+            logger.info(f"{resource_type} {name} modified.")
+            process_routing_object(current_items[name], resource_type)
+
+    return current_items
+
+
 def ingressroute_changed(old, new):
     return old != new
 
 
-def watch_ingressroutes(interval=10):
-    previous_ingressroutes = {}
+def watch_ingress_resources():
+    if WATCH_INGRESSROUTES:
+        logger.info("Start watching Traefik Ingress Routes")
+        previous_ingressroutes = {}
+    if WATCH_INGRESS:
+        logger.info("Start watching Kubernetes Ingress Object")
+        previous_ingress = {}
 
     while True:
-        current_ingressroutes = get_ingressroutes(api_instance)
-        current_items = {item['metadata']['name']: item for item in current_ingressroutes['items']}
-        current_names = set(current_items.keys())
-        previous_names = set(previous_ingressroutes.keys())
+        if WATCH_INGRESSROUTES:
+            current_ingressroutes = get_ingressroutes(custom_api_instance)
+            current_items = {item['metadata']['name']: item for item in current_ingressroutes['items']}
+            previous_ingressroutes = handle_changes(previous_ingressroutes, current_items, "IngressRoute")
 
-        added = current_names - previous_names
-        for name in added:
-            logger.info(f"IngressRoute {name} added.")
-            process_ingressroutes(current_items[name])
+        if WATCH_INGRESS:
+            current_ingress = get_ingress(networking_api_instance)
+            current_items = {item['metadata']['name']: item for item in current_ingress['items']}
+            previous_ingress = handle_changes(previous_ingress, current_items, "Ingress")
 
-        deleted = previous_names - current_names
-        for name in deleted:
-            namespace = previous_ingressroutes[name]['metadata']['namespace']
-            monitor_name = f"{name}-{namespace}"
-            logger.info(f"IngressRoute {name} deleted.")
-            delete_monitor(monitor_name)
-
-        modified = current_names & previous_names
-        for name in modified:
-            if ingressroute_changed(previous_ingressroutes[name], current_items[name]):
-                logger.info(f"IngressRoute {name} modified.")
-                process_ingressroutes(current_items[name])
-
-        previous_ingressroutes = current_items
-        time.sleep(interval)
+        time.sleep(WATCH_INTERVAL)
 
 
 def main():
     check_config()
     init_kuma_api()
     init_kubernetes_client()
-    watch_ingressroutes()
+    watch_ingress_resources()
 
 
 if __name__ == "__main__":
