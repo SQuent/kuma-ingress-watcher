@@ -6,7 +6,7 @@ authors = ["Quentin Sallio <q.sallio@gmail.com>",]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-kubernetes = "^30.0.0"
+kubernetes = "^31.0.0"
 uptime-kuma-api = "^1.2.1"
 
 [build-system]
