@@ -1,5 +1,5 @@
 # Étape 1: Construire les dépendances dans une image intermédiaire
-FROM python:3.12 AS builder
+FROM python:3.13 AS builder
 
 # Installer Poetry
 RUN curl -sSL https://install.python-poetry.org | python -
@@ -17,7 +17,7 @@ COPY pyproject.toml ./
 RUN poetry install --no-root --only main
 
 # Étape 2: Construire l'image finale
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 # Copier les dépendances installées depuis l'image builder
 COPY --from=builder /root/.local /root/.local 
