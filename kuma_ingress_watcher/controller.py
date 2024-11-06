@@ -137,6 +137,8 @@ def process_routing_object(item, type_obj):
     probe_type = annotations.get('uptime-kuma.autodiscovery.probe.type', 'http')
     headers = annotations.get('uptime-kuma.autodiscovery.probe.headers')
     port = annotations.get('uptime-kuma.autodiscovery.probe.port')
+    path = annotations.get('uptime-kuma.autodiscovery.probe.path')
+    hard_host = annotations.get('uptime-kuma.autodiscovery.probe.host')
     method = annotations.get('uptime-kuma.autodiscovery.probe.method', 'GET')
 
     if not enabled:
@@ -144,10 +146,10 @@ def process_routing_object(item, type_obj):
         delete_monitor(monitor_name)
         return
 
-    process_routes(monitor_name, routes_or_rules, interval, probe_type, headers, port, method, type_obj)
+    process_routes(monitor_name, routes_or_rules, interval, probe_type, headers, port, path, hard_host, method, type_obj)
 
 
-def process_routes(monitor_name, routes_or_rules, interval, probe_type, headers, port, method, type_obj):
+def process_routes(monitor_name, routes_or_rules, interval, probe_type, headers, port, path, hard_host, method, type_obj):
     index = 1
     for route_or_rule in routes_or_rules:
         hosts = extract_hosts(route_or_rule, type_obj)
@@ -155,6 +157,10 @@ def process_routes(monitor_name, routes_or_rules, interval, probe_type, headers,
         if hosts:
             for host in hosts:
                 url = f"https://{host}"
+                if hard_host:
+                    url = f"https://{hard_host}"
+                if path:
+                    url = f"{url}{path}"
                 if port:
                     url = f"{url}:{port}"
 
