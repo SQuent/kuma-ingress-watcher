@@ -51,5 +51,5 @@ jobs:
             @google/semantic-release-replace-plugin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCKER_REGISTRY_USER : ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_REGISTRY_PASSWORD : ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_REGISTRY_USER : ${{ github.actor }}
+          DOCKER_REGISTRY_PASSWORD : ${{ secrets.GITHUB_TOKEN }}
