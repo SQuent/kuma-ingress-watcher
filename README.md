@@ -30,6 +30,7 @@ Before running the controller, make sure to configure the following environment 
 - `WATCH_INGRESSROUTES`: Set to `True` to enable monitoring of Traefik IngressRoutes.
 - `WATCH_INGRESS`: Set to `True` to enable monitoring of Kubernetes Ingress resources.
 - `WATCH_INTERVAL`: Interval in seconds between each check for changes in Ingress or IngressRoutes (default is `10` seconds).
+- `INGRESSROUTES_API_VERSION`: Apiversion of IngressRoute Objects to watch (default is `v1alpha1`).
 
 ### Annotations for Uptime Kuma Autodiscovery
 

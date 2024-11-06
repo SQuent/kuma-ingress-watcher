@@ -17,6 +17,7 @@ UPTIME_KUMA_USER = os.getenv('UPTIME_KUMA_USER')
 UPTIME_KUMA_PASSWORD = os.getenv('UPTIME_KUMA_PASSWORD')
 WATCH_INTERVAL = int(os.getenv('WATCH_INTERVAL', '10') or 10)
 WATCH_INGRESSROUTES = str_to_bool(os.getenv('WATCH_INGRESSROUTES', 'True'))
+INGRESSROUTES_API_VERSION = os.getenv('INGRESSROUTES_API_VERSION', 'v1alpha1')
 WATCH_INGRESS = str_to_bool(os.getenv('WATCH_INGRESS', 'False'))
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
 
@@ -183,7 +184,7 @@ def get_ingressroutes(custom_api_instance):
     try:
         return custom_api_instance.list_cluster_custom_object(
             group="traefik.containo.us",
-            version="v1alpha1",
+            version=INGRESSROUTES_API_VERSION,
             plural="ingressroutes"
         )
     except Exception as e:
