@@ -65,13 +65,25 @@ These annotations apply to both Kubernetes Ingress and Traefik Ingressroutes res
    - **Default:** `null` (no headers)
    - **Example:** `uptime-kuma.autodiscovery.probe.headers: {"Authorization": "Bearer token"}`
 
-6. **`uptime-kuma.autodiscovery.probe.port`**
+6. **`uptime-kuma.autodiscovery.probe.host`**
+   - force the host for the probe. **WARNING: Be carefull with this paramter if you are using multiple hosts in a same Ingress object**
+   - **Type:** String
+   - **Default:** `null` (host grep from ingress)
+   - **Example:** `uptime-kuma.autodiscovery.probe.host: example.com`
+
+7. **`uptime-kuma.autodiscovery.probe.path`**
+   - url sub path for the probe.
+   - **Type:** String
+   - **Default:** `null` 
+   - **Example:** `uptime-kuma.autodiscovery.probe.path: /tintin`
+
+8. **`uptime-kuma.autodiscovery.probe.port`**
    - Port to use for the probe.
    - **Type:** Integer
    - **Default:** `null` (default port for the protocol)
    - **Example:** `uptime-kuma.autodiscovery.probe.port: 8080`
 
-7. **`uptime-kuma.autodiscovery.probe.method`**
+9. **`uptime-kuma.autodiscovery.probe.method`**
    - HTTP method to use for the probe (GET, POST, etc.).
    - **Type:** String
    - **Default:** `GET`
@@ -93,6 +105,8 @@ metadata:
     uptime-kuma.autodiscovery.probe.enabled: true
     uptime-kuma.autodiscovery.probe.type: http
     uptime-kuma.autodiscovery.probe.headers: '{"Authorization": "Bearer token"}'
+    uptime-kuma.autodiscovery.probe.host: 'example.com'
+    uptime-kuma.autodiscovery.probe.path: '/tintin'
     uptime-kuma.autodiscovery.probe.port: 8080
     uptime-kuma.autodiscovery.probe.method: GET
 spec:
