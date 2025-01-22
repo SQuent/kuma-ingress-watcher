@@ -8,6 +8,12 @@ repos:
         language: python
         pass_filenames: false
         files: ^(.*/)?(poetry\.lock|pyproject\.toml)$
+      - id: poetry-black
+        name: poetry-black
+        description: run black
+        entry: poetry run black .
+        language: python
+        pass_filenames: false
       - id: poetry-flake8
         name: poetry-flake8
         description: run linter
