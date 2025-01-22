@@ -8,6 +8,8 @@ from kubernetes import client, config
 
 
 def str_to_bool(value):
+    if isinstance(value, bool):
+        return value
     return str(value).lower() in ['true', '1', 't', 'y', 'yes']
 
 
@@ -16,8 +18,9 @@ UPTIME_KUMA_URL = os.getenv('UPTIME_KUMA_URL')
 UPTIME_KUMA_USER = os.getenv('UPTIME_KUMA_USER')
 UPTIME_KUMA_PASSWORD = os.getenv('UPTIME_KUMA_PASSWORD')
 WATCH_INTERVAL = int(os.getenv('WATCH_INTERVAL', '10') or 10)
-WATCH_INGRESSROUTES = str_to_bool(os.getenv('WATCH_INGRESSROUTES', 'True'))
-WATCH_INGRESS = str_to_bool(os.getenv('WATCH_INGRESS', 'False'))
+WATCH_INGRESSROUTES = str_to_bool(os.getenv('WATCH_INGRESSROUTES', True))
+WATCH_INGRESS = str_to_bool(os.getenv('WATCH_INGRESS', False))
+USE_TRAEFIK_V3_CRD_GROUP = str_to_bool(os.getenv('USE_TRAEFIK_V3_CRD_GROUP', False))
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
 
 LOG_LEVELS = {
@@ -186,9 +189,14 @@ def init_kubernetes_client():
 
 
 def get_ingressroutes(custom_api_instance):
+    if USE_TRAEFIK_V3_CRD_GROUP:
+        group = "traefik.io"
+    else:
+        group = "traefik.containo.us"
+
     try:
         return custom_api_instance.list_cluster_custom_object(
-            group="traefik.containo.us",
+            group=group,
             version="v1alpha1",
             plural="ingressroutes"
         )
