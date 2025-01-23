@@ -3,6 +3,7 @@ import re
 import time
 import logging
 import sys
+import yaml
 from uptime_kuma_api import UptimeKumaApi
 from kubernetes import client, config
 
@@ -22,7 +23,8 @@ WATCH_INGRESSROUTES = str_to_bool(os.getenv("WATCH_INGRESSROUTES", True))
 WATCH_INGRESS = str_to_bool(os.getenv("WATCH_INGRESS", False))
 USE_TRAEFIK_V3_CRD_GROUP = str_to_bool(os.getenv("USE_TRAEFIK_V3_CRD_GROUP", False))
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-
+LOAD_MONITOR_FROM_FILE = str_to_bool(os.getenv("ENABLE_FILE_MONITOR", False))
+FILE_MONITOR_PATH = os.getenv("FILE_MONITOR_PATH", "/etc/kuma-controller/monitors.yaml")
 
 LOG_LEVELS = {
     "DEBUG": logging.DEBUG,
@@ -32,14 +34,12 @@ LOG_LEVELS = {
     "CRITICAL": logging.CRITICAL,
 }
 
-# Logging configuration
 logging.basicConfig(
     level=LOG_LEVELS.get(LOG_LEVEL, "INFO"),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-# Global variables for Kubernetes and Uptime Kuma
 kuma = None
 custom_api_instance = None
 networking_api_instance = None
@@ -314,10 +314,60 @@ def watch_ingress_resources():
         time.sleep(WATCH_INTERVAL)
 
 
+def process_monitor_file(file_path):
+    try:
+        with open(file_path, "r") as file:
+            file_content = file.read()
+
+        if not file_content.strip():
+            logger.info(f"The file {file_path} is empty or contains only whitespace.")
+            return
+
+        try:
+            ingress_data = yaml.safe_load(file_content)
+        except yaml.YAMLError as e:
+            logger.error(
+                f"Failed to process file {file_path}: Invalid YAML format ({str(e)})"
+            )
+            return
+
+        for entry in ingress_data:
+            try:
+                if not isinstance(entry, dict):
+                    raise ValueError(f"Invalid entry format: {entry}")
+                if "name" not in entry or "url" not in entry:
+                    raise KeyError(f"Missing required fields in entry: {entry}")
+
+                create_or_update_monitor(
+                    entry.get("name"),
+                    entry.get("url"),
+                    entry.get("interval", 60),
+                    entry.get("type", "http"),
+                    entry.get("headers", {}),
+                    entry.get("method", "GET"),
+                )
+            except (ValueError, KeyError) as e:
+                logger.warning(f"Skipping invalid entry: {entry} ({str(e)})")
+
+    except FileNotFoundError:
+        logger.error(f"File {file_path} not found.")
+    except Exception as e:
+        logger.error(
+            f"An unexpected error occurred while processing file {file_path}: {str(e)}"
+        )
+
+
 def main():
     check_config()
     init_kuma_api()
-    init_kubernetes_client()
+
+    if LOAD_MONITOR_FROM_FILE:
+        logger.info("File-based Monitor creation is enabled.")
+        process_monitor_file(FILE_MONITOR_PATH)
+
+    if WATCH_INGRESSROUTES or WATCH_INGRESS:
+        init_kubernetes_client()
+        watch_ingress_resources()
 
 
 if __name__ == "__main__":
