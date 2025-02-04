@@ -41,7 +41,6 @@ If `ENABLE_FILE_MONITOR` is set to `True`, the controller will load monitor defi
 #### Example YAML File
 
 ```yaml
-monitors:
   - name: example-monitor
     url: https://example.com
     type: http
