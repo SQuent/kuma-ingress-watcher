@@ -2,13 +2,14 @@
 
 ## Overview
 
-Kuma ingress watcher is a kubernetes controller designed to automatically monitor `Kubernetes Ingress` and `Traefik Ingressroutes` in a Kubernetes cluster and create corresponding monitors in `Uptime Kuma`. It provides seamless integration between Kubernetes ingress resources and Uptime Kuma monitoring, allowing for easy and efficient monitoring of web services deployed on Kubernetes.
+Kuma ingress watcher is a Kubernetes controller designed to automatically monitor `Kubernetes Ingress` and `Traefik Ingressroutes` in a Kubernetes cluster and create corresponding monitors in `Uptime Kuma`. It provides seamless integration between Kubernetes ingress resources and Uptime Kuma monitoring, allowing for easy and efficient monitoring of web services deployed on Kubernetes.
 
 ## Features
 
-- Automatically creates, updates and deletes monitors in Uptime Kuma for `Kubernetes Ingress` and `Traefik Ingressroutes`.
+- Automatically creates, updates, and deletes monitors in Uptime Kuma for `Kubernetes Ingress` and `Traefik Ingressroutes`.
 - Supports both single and multiple routes per Ingress resource.
-- Customizable monitors by annotate Ingressroutes and Ingress.
+- Customizable monitors by annotating Ingressroutes and Ingress.
+- **File-based Monitor Configuration**: Define static monitors using a YAML file.
 
 ## Installation
 
@@ -17,7 +18,6 @@ Kuma ingress watcher is a kubernetes controller designed to automatically monito
 - Python 3.6+
 - Kubernetes cluster
 - Uptime Kuma instance
-
 
 ## Configuration
 
@@ -31,10 +31,37 @@ Before running the controller, make sure to configure the following environment 
 - `WATCH_INGRESS`: Set to `True` to enable monitoring of Kubernetes Ingress resources.
 - `WATCH_INTERVAL`: Interval in seconds between each check for changes in Ingress or IngressRoutes (default is `10` seconds).
 - `USE_TRAEFIK_V3_CRD_GROUP`: Whether to use Traefik V3 API CRD group (`traefik.io`); default to `False`.
+- `ENABLE_FILE_MONITOR`: Set to `True` to enable file-based monitor configuration.
+- `FILE_MONITOR_PATH`: The path to the YAML file containing monitor definitions (default `/etc/kuma-controller/monitors.yaml`).
+
+### File-Based Monitor Configuration
+
+If `ENABLE_FILE_MONITOR` is set to `True`, the controller will load monitor definitions from the YAML file specified by `FILE_MONITOR_PATH`.
+
+#### Example YAML File
+
+```yaml
+monitors:
+  - name: example-monitor
+    url: https://example.com
+    type: http
+    interval: 60
+  - name: another-monitor
+    url: https://another.com
+    type: tcp
+    interval: 120
+```
+
+#### Validation Rules
+
+- Each monitor entry must include `name` and `url` fields.
+- Optional fields: `type` (default: `http`), `interval` (default: `60`), `headers` (default `{}`).
+
+The controller will create or update these monitors in Uptime Kuma upon startup.
 
 ### Annotations for Uptime Kuma Autodiscovery
 
-These annotations apply to both Kubernetes Ingress and Traefik Ingressroutes resources, allowing you to customize the behavior of Uptime Kuma monitors for each.:
+These annotations apply to both Kubernetes Ingress and Traefik Ingressroutes resources, allowing you to customize the behavior of Uptime Kuma monitors for each:
 
 1. **`uptime-kuma.autodiscovery.probe.interval`**
    - Sets the probing interval in seconds for the monitor.
@@ -67,15 +94,15 @@ These annotations apply to both Kubernetes Ingress and Traefik Ingressroutes res
    - **Example:** `uptime-kuma.autodiscovery.probe.headers: {"Authorization": "Bearer token"}`
 
 6. **`uptime-kuma.autodiscovery.probe.host`**
-   - force the host for the probe. **WARNING: Be carefull with this paramter if you are using multiple hosts in a same Ingress object**
+   - Force the host for the probe. **WARNING: Be careful with this parameter if you are using multiple hosts in the same Ingress object.**
    - **Type:** String
-   - **Default:** `null` (host grep from ingress)
+   - **Default:** `null` (host grabbed from ingress)
    - **Example:** `uptime-kuma.autodiscovery.probe.host: example.com`
 
 7. **`uptime-kuma.autodiscovery.probe.path`**
-   - url sub path for the probe.
+   - URL sub-path for the probe.
    - **Type:** String
-   - **Default:** `null` 
+   - **Default:** `null`
    - **Example:** `uptime-kuma.autodiscovery.probe.path: /tintin`
 
 8. **`uptime-kuma.autodiscovery.probe.port`**
@@ -95,10 +122,10 @@ These annotations apply to both Kubernetes Ingress and Traefik Ingressroutes res
 Here's an example of annotations configured in a Kubernetes Ingress Resource:
 
 ```yaml
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
+apiVersion: networking.k8s.io/v1
+kind: Ingress
 metadata:
-  name: example-ingressroute
+  name: example-ingress
   namespace: my-namespace
   annotations:
     uptime-kuma.autodiscovery.probe.interval: 120
@@ -111,13 +138,14 @@ metadata:
     uptime-kuma.autodiscovery.probe.port: 8080
     uptime-kuma.autodiscovery.probe.method: GET
 spec:
-  # Your Ingress route specification here
+# Your Ingress route specification here
 ```
-
 
 ## Usage
 
 Once the controller is running, it will automatically monitor any changes to Ingress resources in your Kubernetes cluster and create/update corresponding monitors in Uptime Kuma. Simply deploy your applications using Kubernetes Ingress, and the controller will take care of the rest!
+
+If `ENABLE_FILE_MONITOR` is enabled, the controller will also create monitors defined in the specified YAML file.
 
 ## Important Notes
 
@@ -127,17 +155,12 @@ Currently, the addition of tags to monitors is not supported due to limitations 
 
 ### Custom Watcher for IngressRoutes
 
-The Kubernetes event watcher (`watch`) does not provide specific details on creation, modification, or deletion events for IngressRoutes. To overcome this limitation, this controller implements a custom watcher mechanism that continuously monitors IngressRoutes and triggers appropriate actions based on changes detected. homemade watcher is used for Ingress objects too. This custom solution ensures accurate monitoring and synchronization with Uptime Kuma configurations.
-
-Here’s the passage with the new **Improvements** section included:
-
----
+The Kubernetes event watcher (`watch`) does not provide specific details on creation, modification, or deletion events for IngressRoutes. To overcome this limitation, this controller implements a custom watcher mechanism that continuously monitors IngressRoutes and triggers appropriate actions based on changes detected. This custom solution ensures accurate monitoring and synchronization with Uptime Kuma configurations.
 
 ## Improvements
 
+- **File-Based Monitor Configuration**: Define static monitors using a YAML file.
 - **IngressRoute Version Selection**: You can now choose which version of IngressRoutes to watch. This allows you to customize the controller's behavior based on the version of Traefik you're using.
-- **Tag Addition for Monitors**: Currently, the addition of tags to monitors is not supported due to limitations in the Uptime Kuma API. Future updates may include support for this feature, allowing you to tag monitors directly through the controller.
-
 
 ## Contributing
 
@@ -152,10 +175,17 @@ To run unit tests for this project:
 - Python 3.12 or higher installed.
 - Poetry installed.
 
-````
+```bash
 poetry install
 poetry run pytest
-````
+```
+
+### Pre-commit Hook
+
+```bash
+pre-commit install
+pre-commit run --all-files
+```
 
 ## License
 
