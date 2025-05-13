@@ -62,7 +62,7 @@ def init_kuma_api():
         sys.exit(1)
 
 
-def create_or_update_monitor(name, url, interval, probe_type, headers, method, parent):
+def create_or_update_monitor(name, url, interval, probe_type, headers, method, parent=None, accepted_statuscodes=None):
     try:
         monitors = kuma.get_monitors()
         groups_map = dict([(monitor["name"], monitor["id"]) for monitor in monitors if monitor.get("type") == MonitorType.GROUP])
@@ -77,7 +77,8 @@ def create_or_update_monitor(name, url, interval, probe_type, headers, method, p
                     headers=headers,
                     method=method,
                     interval=interval,
-                    parent=groups_map.get(parent)
+                    parent=groups_map.get(parent),
+                    accepted_statuscodes=accepted_statuscodes
                 )
                 return
         logger.info(f"Creating new monitor for {name} with URL: {url}")
@@ -88,7 +89,8 @@ def create_or_update_monitor(name, url, interval, probe_type, headers, method, p
             interval=interval,
             headers=headers,
             method=method,
-            parent=groups_map.get(parent)
+            parent=groups_map.get(parent),
+            accepted_statuscodes=accepted_statuscodes
         )
         logger.info(f"Successfully created monitor for {name}")
     except Exception as e:
@@ -162,6 +164,18 @@ def process_routing_object(item, type_obj):
     hard_host = annotations.get("uptime-kuma.autodiscovery.probe.host")
     method = annotations.get("uptime-kuma.autodiscovery.probe.method", "GET")
     parent = annotations.get("uptime-kuma.autodiscovery.probe.parent", DEFAULT_PARENT)
+    accepted_statuscodes = annotations.get("uptime-kuma.autodiscovery.probe.accepted-statuscodes")
+
+    if accepted_statuscodes:
+        try:
+            accepted_statuscodes = yaml.safe_load(accepted_statuscodes)
+            if type(accepted_statuscodes) is not list:
+                raise ValueError("Invalid format: accepted-statuscodes must be a list")
+        except (ValueError, yaml.YAMLError):
+            logger.warning(
+                f"Failed to process accepted-statuscodes: {accepted_statuscodes}, skipping"
+            )
+            accepted_statuscodes = None
 
     if not enabled:
         logger.info(f"Monitoring for {name} is disabled via annotations.")
@@ -180,6 +194,7 @@ def process_routing_object(item, type_obj):
         method,
         type_obj,
         parent,
+        accepted_statuscodes
     )
 
 
@@ -194,7 +209,8 @@ def process_routes(
     hard_host,
     method,
     type_obj,
-    parent
+    parent=None,
+    accepted_statuscodes=None,
 ):
     index = 1
     for route_or_rule in routes_or_rules:
@@ -217,7 +233,7 @@ def process_routes(
                 )
 
                 create_or_update_monitor(
-                    monitor_name_with_index, url, interval, probe_type, headers, method, parent
+                    monitor_name_with_index, url, interval, probe_type, headers, method, parent, accepted_statuscodes
                 )
             index += 1
 
@@ -346,6 +362,10 @@ def process_monitor_file(file_path):
                 if "name" not in entry or "url" not in entry:
                     raise KeyError(f"Missing required fields in entry: {entry}")
 
+                statuscodes = entry.get("accepted-statuscodes")
+                if statuscodes is not None and type(statuscodes) is not list:
+                    raise ValueError("Invalid entry format - accepted-statuscodes must be a list")
+
                 create_or_update_monitor(
                     entry.get("name"),
                     entry.get("url"),
@@ -354,6 +374,7 @@ def process_monitor_file(file_path):
                     entry.get("headers", {}),
                     entry.get("method", "GET"),
                     entry.get("parent"),
+                    statuscodes
                 )
             except (ValueError, KeyError) as e:
                 logger.warning(f"Skipping invalid entry: {entry} ({str(e)})")

@@ -11,7 +11,7 @@ class TestCreateOrUpdateMonitor(unittest.TestCase):
             {"name": "test", "url": "http://oldurl.com", "id": 1}
         ]
 
-        create_or_update_monitor("test", "http://newurl.com", 60, "http", None, "GET", None)
+        create_or_update_monitor("test", "http://newurl.com", 60, "http", None, "GET", "testgroup", ["200-299"])
 
         mock_logger.info.assert_called_with(
             "Updating monitor for test with URL: http://newurl.com"
@@ -24,6 +24,7 @@ class TestCreateOrUpdateMonitor(unittest.TestCase):
             headers=None,
             method="GET",
             parent=None,
+            accepted_statuscodes=["200-299"],
         )
 
     @patch("kuma_ingress_watcher.controller.kuma")
@@ -31,7 +32,7 @@ class TestCreateOrUpdateMonitor(unittest.TestCase):
     def test_create_or_update_monitor_create(self, mock_logger, mock_kuma):
         mock_kuma.get_monitors.return_value = []
 
-        create_or_update_monitor("test", "http://newurl.com", 60, "http", None, "GET", None)
+        create_or_update_monitor("test", "http://newurl.com", 60, "http", None, "GET", None, ["200-299"])
 
         mock_logger.info.assert_any_call(
             "Creating new monitor for test with URL: http://newurl.com"
@@ -45,6 +46,7 @@ class TestCreateOrUpdateMonitor(unittest.TestCase):
             headers=None,
             method="GET",
             parent=None,
+            accepted_statuscodes=["200-299"],
         )
 
     @patch("kuma_ingress_watcher.controller.kuma")
@@ -68,6 +70,7 @@ class TestCreateOrUpdateMonitor(unittest.TestCase):
             headers=None,
             method="GET",
             parent=1,
+            accepted_statuscodes=None,
         )
 
     @patch("kuma_ingress_watcher.controller.kuma")
@@ -75,7 +78,7 @@ class TestCreateOrUpdateMonitor(unittest.TestCase):
     def test_create_or_update_monitor_error(self, mock_logger, mock_kuma):
         mock_kuma.get_monitors.side_effect = Exception("API error")
 
-        create_or_update_monitor("test", "http://newurl.com", 60, "http", None, "GET", None)
+        create_or_update_monitor("test", "http://newurl.com", 60, "http", None, "GET")
 
         mock_logger.error.assert_called_once_with(
             "Failed to create or update monitor for test: API error"

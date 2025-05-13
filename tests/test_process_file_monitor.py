@@ -43,6 +43,22 @@ class TestProcessFileIngress(unittest.TestCase):
 
     @patch("kuma_ingress_watcher.controller.logger", spec=True)
     @patch("kuma_ingress_watcher.controller.open", new_callable=MagicMock)
+    def test_process_monitor_file_invalid_statuscodes(self, mock_open, mock_logger):
+        mock_file_content = """
+        - name: test-ingress
+          url: http://example.com
+          accepted-statuscodes: not_a_list
+        """
+        mock_open.return_value.__enter__.return_value.read.return_value = (
+            mock_file_content
+        )
+
+        process_monitor_file("mock_file.yaml")
+
+        mock_logger.warning.assert_called_once()
+
+    @patch("kuma_ingress_watcher.controller.logger", spec=True)
+    @patch("kuma_ingress_watcher.controller.open", new_callable=MagicMock)
     @patch("kuma_ingress_watcher.controller.create_or_update_monitor", spec=True)
     def test_process_monitor_file_valid_entries(
         self, mock_create_or_update_monitor, mock_open, mock_logger
@@ -55,6 +71,8 @@ class TestProcessFileIngress(unittest.TestCase):
           headers: {"Authorization": "Bearer token"}
           method: POST
           parent: test-parent
+          accepted-statuscodes:
+            - 200-299
         """
         mock_open.return_value.__enter__.return_value.read.return_value = (
             mock_file_content
@@ -70,6 +88,7 @@ class TestProcessFileIngress(unittest.TestCase):
             {"Authorization": "Bearer token"},
             "POST",
             "test-parent",
+            ["200-299"]
         )
 
     @patch("kuma_ingress_watcher.controller.logger", spec=True)
