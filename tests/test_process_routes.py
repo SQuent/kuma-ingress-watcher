@@ -22,10 +22,11 @@ class TestProcessRoutes(unittest.TestCase):
             port="8080",
             method="GET",
             type_obj="IngressRoute",
+            parent="testgroup",
         )
 
         mock_create_or_update_monitor.assert_called_once_with(
-            "test-monitor", "https://example.com:8080", 60, "http", None, "GET"
+            "test-monitor", "https://example.com:8080", 60, "http", None, "GET", "testgroup"
         )
 
     @patch("kuma_ingress_watcher.controller.create_or_update_monitor")
@@ -49,15 +50,16 @@ class TestProcessRoutes(unittest.TestCase):
             port="8080",
             method="GET",
             type_obj="IngressRoute",
+            parent=None,
         )
 
         self.assertEqual(mock_create_or_update_monitor.call_count, 2)
         calls = [
             unittest.mock.call(
-                "test-monitor-1", "https://example.com:8080", 60, "http", None, "GET"
+                "test-monitor-1", "https://example.com:8080", 60, "http", None, "GET", None
             ),
             unittest.mock.call(
-                "test-monitor-2", "https://example.org:8080", 60, "http", None, "GET"
+                "test-monitor-2", "https://example.org:8080", 60, "http", None, "GET", None
             ),
         ]
         mock_create_or_update_monitor.assert_has_calls(calls)
@@ -80,6 +82,7 @@ class TestProcessRoutes(unittest.TestCase):
             port="8080",
             method="GET",
             type_obj="IngressRoute",
+            parent=None,
         )
 
         mock_create_or_update_monitor.assert_not_called()
@@ -102,10 +105,11 @@ class TestProcessRoutes(unittest.TestCase):
             port=None,
             method="GET",
             type_obj="IngressRoute",
+            parent=None,
         )
 
         mock_create_or_update_monitor.assert_called_once_with(
-            "test-monitor", "https://example.com", 60, "http", None, "GET"
+            "test-monitor", "https://example.com", 60, "http", None, "GET", None
         )
 
     @patch("kuma_ingress_watcher.controller.create_or_update_monitor")
@@ -126,10 +130,11 @@ class TestProcessRoutes(unittest.TestCase):
             port=None,
             method="GET",
             type_obj="IngressRoute",
+            parent=None,
         )
 
         mock_create_or_update_monitor.assert_called_once_with(
-            "test-monitor", "https://example.com/milou", 60, "http", None, "GET"
+            "test-monitor", "https://example.com/milou", 60, "http", None, "GET", None
         )
 
     @patch("kuma_ingress_watcher.controller.create_or_update_monitor")
@@ -150,10 +155,11 @@ class TestProcessRoutes(unittest.TestCase):
             port=None,
             method="GET",
             type_obj="IngressRoute",
+            parent=None,
         )
 
         mock_create_or_update_monitor.assert_called_once_with(
-            "test-monitor", "https://tintin/milou", 60, "http", None, "GET"
+            "test-monitor", "https://tintin/milou", 60, "http", None, "GET", None
         )
 
     @patch("kuma_ingress_watcher.controller.create_or_update_monitor")
@@ -174,10 +180,11 @@ class TestProcessRoutes(unittest.TestCase):
             port=8080,
             method="GET",
             type_obj="IngressRoute",
+            parent=None,
         )
 
         mock_create_or_update_monitor.assert_called_once_with(
-            "test-monitor", "https://tintin/milou:8080", 60, "http", None, "GET"
+            "test-monitor", "https://tintin/milou:8080", 60, "http", None, "GET", None
         )
 
     @patch("kuma_ingress_watcher.controller.create_or_update_monitor")
@@ -201,15 +208,16 @@ class TestProcessRoutes(unittest.TestCase):
             port=8080,
             method="GET",
             type_obj="IngressRoute",
+            parent=None,
         )
 
         self.assertEqual(mock_create_or_update_monitor.call_count, 2)
         calls = [
             unittest.mock.call(
-                "test-monitor-1", "https://tintin/milou:8080", 60, "http", None, "GET"
+                "test-monitor-1", "https://tintin/milou:8080", 60, "http", None, "GET", None
             ),
             unittest.mock.call(
-                "test-monitor-2", "https://tintin/milou:8080", 60, "http", None, "GET"
+                "test-monitor-2", "https://tintin/milou:8080", 60, "http", None, "GET", None
             ),
         ]
         mock_create_or_update_monitor.assert_has_calls(calls)

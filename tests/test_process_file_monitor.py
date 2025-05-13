@@ -54,6 +54,7 @@ class TestProcessFileIngress(unittest.TestCase):
           type: http
           headers: {"Authorization": "Bearer token"}
           method: POST
+          parent: test-parent
         """
         mock_open.return_value.__enter__.return_value.read.return_value = (
             mock_file_content
@@ -68,6 +69,7 @@ class TestProcessFileIngress(unittest.TestCase):
             "http",
             {"Authorization": "Bearer token"},
             "POST",
+            "test-parent",
         )
 
     @patch("kuma_ingress_watcher.controller.logger", spec=True)
