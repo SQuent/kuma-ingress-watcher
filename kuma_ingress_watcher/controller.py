@@ -136,7 +136,7 @@ def get_routes_or_rules(spec, type_obj):
 
 def process_routing_object(item, type_obj):
     metadata = item["metadata"]
-    annotations = metadata.get("annotations", {})
+    annotations = metadata.get("annotations") or {}
 
     name = metadata["name"]
     namespace = metadata["namespace"]
