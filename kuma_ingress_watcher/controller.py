@@ -141,18 +141,47 @@ def get_routes_or_rules(spec, type_obj):
         return []
 
 
+def get_monitor_name(item):
+    metadata = item["metadata"]
+    annotations = metadata.get("annotations") or {}
+    name = metadata["name"]
+    namespace = metadata["namespace"]
+    return annotations.get(
+        "uptime-kuma.autodiscovery.probe.name", f"{name}-{namespace}"
+    )
+
+
+def get_monitor_names_for_object(item, type_obj):
+    monitor_name = get_monitor_name(item)
+    routes_or_rules = get_routes_or_rules(item["spec"], type_obj)
+
+    names = []
+    index = 1
+    for route_or_rule in routes_or_rules:
+        hosts = extract_hosts(route_or_rule, type_obj)
+
+        if hosts:
+            for host in hosts:
+                monitor_name_with_index = (
+                    f"{monitor_name}-{index}"
+                    if len(routes_or_rules) > 1
+                    else monitor_name
+                )
+                names.append(monitor_name_with_index)
+            index += 1
+
+    return names
+
+
 def process_routing_object(item, type_obj):
     metadata = item["metadata"]
     annotations = metadata.get("annotations") or {}
 
     name = metadata["name"]
-    namespace = metadata["namespace"]
     spec = item["spec"]
     routes_or_rules = get_routes_or_rules(spec, type_obj)
     interval = int(annotations.get("uptime-kuma.autodiscovery.probe.interval", 60))
-    monitor_name = annotations.get(
-        "uptime-kuma.autodiscovery.probe.name", f"{name}-{namespace}"
-    )
+    monitor_name = get_monitor_name(item)
     enabled = (
         annotations.get("uptime-kuma.autodiscovery.probe.enabled", "true").lower()
         == "true"
@@ -179,7 +208,8 @@ def process_routing_object(item, type_obj):
 
     if not enabled:
         logger.info(f"Monitoring for {name} is disabled via annotations.")
-        delete_monitor(monitor_name)
+        for name_to_delete in get_monitor_names_for_object(item, type_obj):
+            delete_monitor(name_to_delete)
         return
 
     process_routes(
@@ -289,10 +319,9 @@ def handle_changes(previous_items, current_items, resource_type):
 
     deleted = previous_names - current_names
     for name in deleted:
-        namespace = previous_items[name]["metadata"]["namespace"]
-        monitor_name = f"{name}-{namespace}"
         logger.info(f"{resource_type} {name} deleted.")
-        delete_monitor(monitor_name)
+        for monitor_name in get_monitor_names_for_object(previous_items[name], resource_type):
+            delete_monitor(monitor_name)
 
     modified = current_names & previous_names
     for name in modified:
